@@ -32,8 +32,6 @@ class AuditBee(ApiaryBot):
 
         # Get command line options
         self.get_args()
-        # Get configuration settings
-        self.get_config(self.args.config)
 
         # Initialize stats
         self.stats['audit_count'] = 0
