@@ -37,6 +37,19 @@ from apiary import ApiaryBot
 class BumbleBee(ApiaryBot):
     """Bot that collects statistics for sites."""
 
+    def __init__(self):
+        ApiaryBot.__init__(self)
+
+        # Initialize stats
+        self.stats['statistics'] = 0
+        self.stats['smwinfo'] = 0
+        self.stats['smwusage'] = 0
+        self.stats['general'] = 0
+        self.stats['extensions'] = 0
+        self.stats['skins'] = 0
+        self.stats['skippedstatistics'] = 0
+        self.stats['skippedgeneral'] = 0
+
     def get_args(self):
         parser = argparse.ArgumentParser(prog="Bumble Bee", description="retrieves usage and statistic information for WikiApiary")
         parser.add_argument("-s", "--segment", help="only work on websites in defined segment")

@@ -40,15 +40,6 @@ class ApiaryBot:
         self.get_config(self.args.config)
         # Connect to the database
         self.connectdb()
-        # Initialize stats
-        self.stats['statistics'] = 0
-        self.stats['smwinfo'] = 0
-        self.stats['smwusage'] = 0
-        self.stats['general'] = 0
-        self.stats['extensions'] = 0
-        self.stats['skins'] = 0
-        self.stats['skippedstatistics'] = 0
-        self.stats['skippedgeneral'] = 0
 
     def get_config(self, config_file='../apiary.cfg'):
         try:
