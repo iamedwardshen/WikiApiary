@@ -34,10 +34,6 @@ class ApiaryBot:
     edit_token = ''
 
     def __init__(self):
-        # Get command line options
-        self.get_args()
-        # Get configuration settings
-        self.get_config(self.args.config)
         # Connect to the database
         self.connectdb()
 

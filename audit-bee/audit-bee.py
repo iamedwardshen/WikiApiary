@@ -30,6 +30,11 @@ class AuditBee(ApiaryBot):
     def __init__(self):
         ApiaryBot.__init__(self)
 
+        # Get command line options
+        self.get_args()
+        # Get configuration settings
+        self.get_config(self.args.config)
+
         # Initialize stats
         self.stats['audit_count'] = 0
         self.stats['audit_success'] = 0
