@@ -37,6 +37,221 @@ from apiary import ApiaryBot
 class BumbleBee(ApiaryBot):
     """Bot that collects statistics for sites."""
 
+    def get_websites(self, segment, site):
+        filter_string = ""
+        if site is not None:
+            if self.args.verbose >= 1:
+                print "Processing site %d." % int(site)
+            filter_string = "[[Has ID::%d]]" % int(site)
+        elif segment is not None:
+            if self.args.verbose >= 1:
+                print "Only retrieving segment %d." % int(self.args.segment)
+            filter_string = "[[Has bot segment::%d]]" % int(self.args.segment)
+
+        # Build query for sites
+        my_query = ''.join([
+            '[[Category:Website]]',
+            '[[Is defunct::False]]',
+            '[[Is active::True]]',
+            filter_string,
+            '|?Has API URL',
+            '|?Has statistics URL',
+            '|?Check every',
+            '|?Creation date',
+            '|?Has ID',
+            '|?In error',
+            '|?Collect general data',
+            '|?Collect extension data',
+            '|?Collect skin data',
+            '|?Collect statistics',
+            '|?Collect semantic statistics',
+            '|?Collect semantic usage',
+            '|?Collect logs',
+            '|?Collect recent changes',
+            '|?Collect statistics stats',
+            '|sort=Creation date',
+            '|order=asc',
+            '|limit=1000'])
+        if self.args.verbose >= 3:
+            print "Query: %s" % my_query
+        sites = self.apiary_wiki.call({'action': 'ask', 'query': my_query})
+
+        # We could just return the raw JSON object from the API, however instead we are going to clean it up into an
+        # easier to deal with array of dictionary objects.
+        # To keep things sensible, we'll use the same name as the properties
+        i = 0
+        if len(sites['query']['results']) > 0:
+            my_sites = []
+            for pagename, site in sites['query']['results'].items():
+                i += 1
+                if self.args.verbose >= 3:
+                    print "[%d] Adding %s." % (i, pagename)
+
+                # Initialize the flags but do it carefully in case there is no value in the wiki yet
+                try:
+                    collect_general_data = (site['printouts']['Collect general data'][0] == "t")
+                except:
+                    collect_general_data = False
+
+                try:
+                    collect_extension_data = (site['printouts']['Collect extension data'][0] == "t")
+                except:
+                    collect_extension_data = False
+
+                try:
+                    collect_skin_data = (site['printouts']['Collect skin data'][0] == "t")
+                except:
+                    collect_skin_data = False
+
+                try:
+                    collect_statistics = (site['printouts']['Collect statistics'][0] == "t")
+                except:
+                    collect_statistics = False
+
+                try:
+                    collect_semantic_statistics = (site['printouts']['Collect semantic statistics'][0] == "t")
+                except:
+                    collect_semantic_statistics = False
+
+                try:
+                    collect_semantic_usage = (site['printouts']['Collect semantic usage'][0] == "t")
+                except:
+                    collect_semantic_usage = False
+
+                try:
+                    collect_statistics_stats = (site['printouts']['Collect statistics stats'][0] == "t")
+                except:
+                    collect_statistics_stats = False
+
+                try:
+                    collect_logs = (site['printouts']['Collect logs'][0] == "t")
+                except:
+                    collect_logs = False
+
+                try:
+                    collect_recent_changes = (site['printouts']['Collect recent changes'][0] == "t")
+                except:
+                    collect_recent_changes = False
+
+                try:
+                    has_statistics_url = site['printouts']['Has statistics URL'][0]
+                except:
+                    has_statistics_url = ''
+
+                try:
+                    has_api_url = site['printouts']['Has API URL'][0]
+                except:
+                    has_api_url = ''
+
+                if has_statistics_url.find('wikkii.com') > 0:
+                    # Temporary filter out all Farm:Wikkii sites
+                    if self.args.verbose >= 2:
+                        print "Skipping %s (%s)" % (pagename, site['fullurl'])
+                else:
+                    my_sites.append({
+                        'pagename': pagename,
+                        'fullurl': site['fullurl'],
+                        'Has API URL': has_api_url,
+                        'Has statistics URL': has_statistics_url,
+                        'Check every': int(site['printouts']['Check every'][0]),
+                        'Creation date': site['printouts']['Creation date'][0],
+                        'Has ID': int(site['printouts']['Has ID'][0]),
+                        'In error': (site['printouts']['In error'][0] == "t"),  # Boolean fields we'll convert from the strings we get back to real booleans
+                        'Collect general data': collect_general_data,
+                        'Collect extension data': collect_extension_data,
+                        'Collect skin data': collect_skin_data,
+                        'Collect statistics': collect_statistics,
+                        'Collect semantic statistics': collect_semantic_statistics,
+                        'Collect semantic usage': collect_semantic_usage,
+                        'Collect statistics stats': collect_statistics_stats,
+                        'Collect logs': collect_logs,
+                        'Collect recent changes': collect_recent_changes
+                    })
+
+            return my_sites
+        else:
+            raise Exception("No sites were returned to work on.")
+
+    def get_status(self, site):
+        """
+        get_status will query the website_status table in ApiaryDB. It makes the decision if new
+        data should be retrieved for a given website. Two booleans are returned, the first to
+        tell if new statistics information should be requested and the second to pull general information.
+        """
+        # Get the timestamps for the last statistics and general pulls
+        cur = self.apiary_db.cursor()
+        temp_sql = "SELECT last_statistics, last_general, check_every_limit FROM website_status WHERE website_id = %d" % site['Has ID']
+        cur.execute(temp_sql)
+        rows_returned = cur.rowcount
+
+        if rows_returned == 1:
+            # Let's see if it's time to pull information again
+            data = cur.fetchone()
+            cur.close()
+
+            (last_statistics, last_general, check_every_limit) = data[0:3]
+            if self.args.verbose >= 3:
+                print "last_stats: %s" % last_statistics
+                print "last_general: %s" % last_general
+                print "check_every_limit: %s" % check_every_limit
+
+            #TODO: make this check the times!
+            last_statistics_struct = time.strptime(str(last_statistics), '%Y-%m-%d %H:%M:%S')
+            last_general_struct = time.strptime(str(last_general), '%Y-%m-%d %H:%M:%S')
+
+            stats_delta = (time.mktime(time.gmtime()) - time.mktime(last_statistics_struct)) / 60
+            general_delta = (time.mktime(time.gmtime()) - time.mktime(last_general_struct)) / 60
+
+            if self.args.verbose >= 2:
+                print "Delta from checks: stats %s general %s" % (stats_delta, general_delta)
+
+            (check_stats, check_general) = (False, False)
+            if stats_delta > (site['Check every'] + random.randint(0, 15))  and stats_delta > check_every_limit:    # Add randomness to keep checks spread around
+                check_stats = True
+            else:
+                if self.args.verbose >= 2:
+                    print "Skipping stats..."
+                self.stats['skippedstatistics'] += 1
+
+            if general_delta > ((24 + random.randint(0, 24)) * 60):   # General checks are always bound to 24 hours, plus a random offset to keep checks evenly distributed
+                check_general = True
+            else:
+                if self.args.verbose >= 2:
+                    print "Skipping general..."
+                self.stats['skippedgeneral'] += 1
+
+            return (check_stats, check_general)
+
+        elif rows_returned == 0:
+            cur.close()
+            # This website doesn't have a status, so we should check everything
+            if self.args.verbose >= 3:
+                print "website has never been checked before"
+            return (True, True)
+
+        else:
+            raise Exception("Status check returned multiple rows.")
+
+    def update_status(self, site, checktype):
+        # Update the website_status table
+        my_now = self.sqlutcnow()
+
+        if checktype == "statistics":
+            temp_sql = "UPDATE website_status SET last_statistics = '%s' WHERE website_id = %d" % (my_now, site['Has ID'])
+
+        if checktype == "general":
+            temp_sql = "UPDATE website_status SET last_general = '%s' WHERE website_id = %d" % (my_now, site['Has ID'])
+
+        (success, rows_affected) = self.runSql(temp_sql)
+
+        if rows_affected == 0:
+            # No rows were updated, this website likely didn't exist before, so we need to insert the first time
+            if self.args.verbose >= 2:
+                print "No website_status record exists for ID %d, creating one" % site['Has ID']
+            temp_sql = "INSERT website_status (website_id, last_statistics, last_general, check_every_limit) "
+            temp_sql += "VALUES (%d, \"%s\", \"%s\", %d)" % (site['Has ID'], my_now, my_now, 240)
+            self.runSql(temp_sql)
+
     def parse_version(self, t):
         ver = {}
 
