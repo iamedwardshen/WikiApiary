@@ -86,7 +86,7 @@ class ApiaryBot:
                 # The regex here is really simple, but it seems to work fine.
                 ret_string = f.read()
                 json_match = re.search(r"({.*})", ret_string, flags=re.MULTILINE)
-                if json_match.group(1) != None:
+                if json_match.group(1) is not None:
                     # Found JSON block
                     data = simplejson.loads(json_match.group(1))
                 else:
@@ -161,22 +161,6 @@ class ApiaryBot:
         )
 
         self.runSql(temp_sql)
-
-    def clear_error(self, sitename):
-        # This function clears the error status of a meeting
-        socket.setdefaulttimeout(30)
-
-        if self.args.verbose >= 2:
-            print "Clearing error for %s" % sitename
-
-        c = self.apiary_wiki.call({
-            'action': 'sfautoedit',
-            'form': 'Website',
-            'target': sitename,
-            'Website[Error]': 'No',
-            'wpSummary': 'clearing error'})
-        if self.args.verbose >= 3:
-            print c
 
     def connectdb(self):
         # Setup our database connection
