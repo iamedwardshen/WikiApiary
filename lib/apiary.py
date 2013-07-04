@@ -57,19 +57,6 @@ class ApiaryBot:
         except IOError:
             print "Cannot open %s." % config_file
 
-    def get_args(self):
-        parser = argparse.ArgumentParser(prog="Bumble Bee", description="retrieves usage and statistic information for WikiApiary")
-        parser.add_argument("-s", "--segment", help="only work on websites in defined segment")
-        parser.add_argument("--site", help="only work on this specific site id")
-        parser.add_argument("-f", "--force", action="store_true", help="run regardless of when the last time data was updated")
-        parser.add_argument("-d", "--debug", action="store_true", help="do not write any changes to wiki or database")
-        parser.add_argument("--config", default="../apiary.cfg", help="use an alternative config file")
-        parser.add_argument("-v", "--verbose", action="count", default=0, help="increase output verbosity")
-        parser.add_argument("--version", action="version", version="%(prog)s 0.1")
-
-        # All set, now get the arguments
-        self.args = parser.parse_args()
-
     def filter_illegal_chars(self, pre_filter):
         # Utility function to make sure that strings are okay for page titles
         return re.sub(r'[#<>\[\]\|{}]', '', pre_filter).replace('=', '-')
