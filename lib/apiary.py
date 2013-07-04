@@ -13,12 +13,10 @@ import time
 import datetime
 import pytz
 import ConfigParser
-import argparse
 import socket
 import MySQLdb as mdb
 import simplejson
 import urllib2
-import random
 import re
 from urllib2 import Request, urlopen, URLError, HTTPError
 from simplemediawiki import MediaWiki

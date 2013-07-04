@@ -7,8 +7,6 @@ import os
 import sys
 import time
 import datetime
-import pytz
-import ConfigParser
 import argparse
 import socket
 import MySQLdb as mdb

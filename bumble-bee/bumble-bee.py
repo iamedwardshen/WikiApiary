@@ -14,13 +14,9 @@ import os
 import sys
 import time
 import datetime
-import pytz
-import ConfigParser
 import argparse
 import socket
-import MySQLdb as mdb
 import simplejson
-import yaml
 import urllib2
 from urllib2 import Request, urlopen, URLError, HTTPError
 from simplemediawiki import MediaWiki
