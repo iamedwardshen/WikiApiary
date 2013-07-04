@@ -327,7 +327,7 @@ class BumbleBee(ApiaryBot):
                             if self.args.verbose >= 3:
                                 print "Illegal value '%s' for %s." % (value, name)
                 else:
-                    status = False # The result didn't match the pattern expected
+                    status = False   # The result didn't match the pattern expected
                     self.record_error(
                         site=site,
                         log_message="Unexpected response to statistics call",
@@ -349,65 +349,58 @@ class BumbleBee(ApiaryBot):
             if 'query' in data:
                 # Record the data received to the database
                 sql_command = """
-                    INSERT INTO statistics
-                        (website_id, capture_date, response_timer, articles, jobs, users, admins, edits, activeusers, images, pages, views)
-                    VALUES
-                        (%s, '%s', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    """
+INSERT INTO statistics (
+    website_id,
+    capture_date,
+    response_timer,
+    articles,
+    jobs,
+    users,
+    admins,
+    edits,
+    activeusers,
+    images,
+    pages,
+    views)
+VALUES (
+    %(website_id)s,
+    '%(capture_date)s',
+    %(duration)s,
+    %(articles)s,
+    %(jobs)s,
+    %(users)s,
+    %(admins)s,
+    %(edits)s,
+    %(activeusers)s,
+    %(images)s,
+    %(pages)s,
+    %(views)s)
+"""
 
+                myVars = {}
                 data = data['query']['statistics']
-                if 'articles' in data:
-                        articles = "%s" % data['articles']
-                else:
-                        articles = 'null'
-                if 'jobs' in data:
-                        jobs = "%s" % data['jobs']
-                else:
-                        jobs = 'null'
-                if 'users' in data:
-                        users = "%s" % data['users']
-                else:
-                        users = 'null'
-                if 'admins' in data:
-                        admins = "%s" % data['admins']
-                else:
-                        admins = 'null'
-                if 'edits' in data:
-                        edits = "%s" % data['edits']
-                else:
-                        edits = 'null'
-                if 'activeusers' in data:
-                        if data['activeusers'] < 0:
-                            data['activeusers'] = 0
-                        activeusers = "%s" % data['activeusers']
-                else:
-                        activeusers = 'null'
-                if 'images' in data:
-                        images = "%s" % data['images']
-                else:
-                        images = 'null'
-                if 'pages' in data:
-                        pages = "%s" % data['pages']
-                else:
-                        pages = 'null'
-                if 'views' in data:
-                        views = "%s" % data['views']
-                else:
-                        views = 'null'
 
-                sql_command = sql_command % (
-                    site['Has ID'],
-                    self.sqlutcnow(),
-                    duration,
-                    articles,
-                    jobs,
-                    users,
-                    admins,
-                    edits,
-                    activeusers,
-                    images,
-                    pages,
-                    views)
+                myVars['website_id'] = site['Has ID']
+                myVars['capture_date'] = self.sqlutcnow()
+                myVars['duration'] = duration
+                myVars['articles'] = "%s" % (data['articles'] if 'articles' in data else 'null')
+                myVars['jobs'] = "%s" % (data['jobs'] if 'jobs' in data else 'null')
+                myVars['users'] = "%s" % (data['users'] if 'users' in data else 'null')
+                myVars['admins'] = "%s" % (data['admins'] if 'admins' in data else 'null')
+                myVars['edits'] = "%s" % (data['edits'] if 'edits' in data else 'null')
+
+                if 'activeusers' in data:
+                    if data['activeusers'] < 0:
+                        data['activeusers'] = 0
+                    myVars['activeusers'] = "%s" % data['activeusers']
+                else:
+                    myVars['activeusers'] = 'null'
+
+                myVars['images'] = "%s" % (data['images'] if 'images' in data else 'null')
+                myVars['pages'] = "%s" % (data['pages'] if 'pages' in data else 'null')
+                myVars['views'] = "%s" % (data['views'] if 'views' in data else 'null')
+
+                sql_command = sql_command % myVars
 
                 self.runSql(sql_command)
                 self.stats['statistics'] += 1
