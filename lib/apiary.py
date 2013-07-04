@@ -125,6 +125,18 @@ class ApiaryBot:
             print "Exception: %s" % e
             return False, 0
 
+    def getPossibleBoolean(collection, value):
+        try:
+            return collection[value][0] == "t"
+        except:
+            return False
+
+    def getPossibleString(collection, value):
+        try:
+            return collection[value][0]
+        except:
+            return False
+
     def record_error(self, site, log_message, log_type='info', log_severity='normal', log_bot=None, log_url=None):
         if 'pagename' not in site:
             if 'Has name' in site:

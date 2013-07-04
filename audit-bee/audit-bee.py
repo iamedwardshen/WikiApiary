@@ -39,18 +39,18 @@ class AuditBee(ApiaryBot):
         # Array to put the sites we are auditing into
         self.my_sites = []
 
-        def get_args(self):
-            parser = argparse.ArgumentParser(prog="Bumble Bee", description="retrieves usage and statistic information for WikiApiary")
-            parser.add_argument("-s", "--segment", help="only work on websites in defined segment")
-            parser.add_argument("--site", help="only work on this specific site id")
-            parser.add_argument("-f", "--force", action="store_true", help="run regardless of when the last time data was updated")
-            parser.add_argument("-d", "--debug", action="store_true", help="do not write any changes to wiki or database")
-            parser.add_argument("--config", default="../apiary.cfg", help="use an alternative config file")
-            parser.add_argument("-v", "--verbose", action="count", default=0, help="increase output verbosity")
-            parser.add_argument("--version", action="version", version="%(prog)s 0.1")
+    def get_args(self):
+        parser = argparse.ArgumentParser(prog="Bumble Bee", description="retrieves usage and statistic information for WikiApiary")
+        parser.add_argument("-s", "--segment", help="only work on websites in defined segment")
+        parser.add_argument("--site", help="only work on this specific site id")
+        parser.add_argument("-f", "--force", action="store_true", help="run regardless of when the last time data was updated")
+        parser.add_argument("-d", "--debug", action="store_true", help="do not write any changes to wiki or database")
+        parser.add_argument("--config", default="../apiary.cfg", help="use an alternative config file")
+        parser.add_argument("-v", "--verbose", action="count", default=0, help="increase output verbosity")
+        parser.add_argument("--version", action="version", version="%(prog)s 2.0")
 
-            # All set, now get the arguments
-            self.args = parser.parse_args()
+        # All set, now get the arguments
+        self.args = parser.parse_args()
 
     def update_audit_status(self, pagename):
         if self.args.verbose >= 2:
@@ -396,80 +396,25 @@ class AuditBee(ApiaryBot):
                 if self.args.verbose >= 3:
                     print "Adding %s." % pagename
 
-                # Initialize the flags but do it carefully in case there is no value in the wiki yet
-                try:
-                    collect_general_data = (site['printouts']['Collect general data'][0] == "t")
-                except:
-                    collect_general_data = False
+                tempDict = {}
+                tempDict['pagename'] = pagename
+                tempDict['Creation date'] = site['printouts']['Creation date'][0]
+                tempDict['Has ID'] = int(site['printouts']['Has ID'][0])
+                tempDict['Is audited'] = (site['printouts']['Is audited'][0] == "t")
+                tempDict['Is active'] = (site['printouts']['Is active'][0] == "t")
+                tempDict['Collect general data'] = self.getPossibleBoolean(site['printouts'], 'Collect general data')
+                tempDict['Collect extension data'] = self.getPossibleBoolean(site['printouts'], 'Collect extension data')
+                tempDict['Collect skin data'] = self.getPossibleBoolean(site['printouts'], 'Collect skin data')
+                tempDict['Collect statistics'] = self.getPossibleBoolean(site['printouts'], 'Collect statistics')
+                tempDict['Collect semantic statistics'] = self.getPossibleBoolean(site['printouts'], 'Collect semantic statistics')
+                tempDict['Collect semantic usage'] = self.getPossibleBoolean(site['printouts'], 'Collect semantic usage')
+                tempDict['Collect statistics stats'] = self.getPossibleBoolean(site['printouts'], 'Collect statistics stats')
+                tempDict['Collect logs'] = self.getPossibleBoolean(site['printouts'], 'Collect logs')
+                tempDict['Collect recent changes'] = self.getPossibleBoolean(site['printouts'], 'Collect recent changes')
+                tempDict['Has statistics URL'] = self.getPossibleString(site['printouts'], 'Has statistics URL')
+                tempDict['Has API URL'] = self.getPossibleString(site['printouts'], 'Has API URL')
 
-                try:
-                    collect_extension_data = (site['printouts']['Collect extension data'][0] == "t")
-                except:
-                    collect_extension_data = False
-
-                try:
-                    collect_skin_data = (site['printouts']['Collect skin data'][0] == "t")
-                except:
-                    collect_skin_data = False
-
-                try:
-                    collect_statistics = (site['printouts']['Collect statistics'][0] == "t")
-                except:
-                    collect_statistics = False
-
-                try:
-                    collect_semantic_statistics = (site['printouts']['Collect semantic statistics'][0] == "t")
-                except:
-                    collect_semantic_statistics = False
-
-                try:
-                    collect_semantic_usage = (site['printouts']['Collect semantic usage'][0] == "t")
-                except:
-                    collect_semantic_usage = False
-
-                try:
-                    collect_statistics_stats = (site['printouts']['Collect statistics stats'][0] == "t")
-                except:
-                    collect_statistics_stats = False
-
-                try:
-                    collect_logs = (site['printouts']['Collect logs'][0] == "t")
-                except:
-                    collect_logs = False
-
-                try:
-                    collect_recent_changes = (site['printouts']['Collect recent changes'][0] == "t")
-                except:
-                    collect_recent_changes = False
-
-                try:
-                    has_statistics_url = site['printouts']['Has statistics URL'][0]
-                except:
-                    has_statistics_url = None
-
-                try:
-                    has_api_url = site['printouts']['Has API URL'][0]
-                except:
-                    has_api_url = None
-
-                self.my_sites.append({
-                    'pagename': pagename,
-                    'Has API URL': has_api_url,
-                    'Has statistics URL': has_statistics_url,
-                    'Creation date': site['printouts']['Creation date'][0],
-                    'Has ID': int(site['printouts']['Has ID'][0]),
-                    'Collect general data': collect_general_data,
-                    'Collect extension data': collect_extension_data,
-                    'Collect skin data': collect_skin_data,
-                    'Collect statistics': collect_statistics,
-                    'Collect semantic statistics': collect_semantic_statistics,
-                    'Collect semantic usage': collect_semantic_usage,
-                    'Collect statistics stats': collect_statistics_stats,
-                    'Collect logs': collect_logs,
-                    'Collect recent changes': collect_recent_changes,
-                    'Is audited': (site['printouts']['Is audited'][0] == "t"),
-                    'Is active': (site['printouts']['Is active'][0] == "t")
-                })
+                self.my_sites.append(tempDict)
 
     def main(self):
         # Track the time we started

@@ -17,6 +17,7 @@ import datetime
 import argparse
 import socket
 import simplejson
+import random
 import urllib2
 from urllib2 import Request, urlopen, URLError, HTTPError
 from simplemediawiki import MediaWiki
@@ -84,7 +85,6 @@ class BumbleBee(ApiaryBot):
             '|?Check every',
             '|?Creation date',
             '|?Has ID',
-            '|?In error',
             '|?Collect general data',
             '|?Collect extension data',
             '|?Collect skin data',
@@ -112,62 +112,6 @@ class BumbleBee(ApiaryBot):
                 if self.args.verbose >= 3:
                     print "[%d] Adding %s." % (i, pagename)
 
-                # Initialize the flags but do it carefully in case there is no value in the wiki yet
-                try:
-                    collect_general_data = (site['printouts']['Collect general data'][0] == "t")
-                except:
-                    collect_general_data = False
-
-                try:
-                    collect_extension_data = (site['printouts']['Collect extension data'][0] == "t")
-                except:
-                    collect_extension_data = False
-
-                try:
-                    collect_skin_data = (site['printouts']['Collect skin data'][0] == "t")
-                except:
-                    collect_skin_data = False
-
-                try:
-                    collect_statistics = (site['printouts']['Collect statistics'][0] == "t")
-                except:
-                    collect_statistics = False
-
-                try:
-                    collect_semantic_statistics = (site['printouts']['Collect semantic statistics'][0] == "t")
-                except:
-                    collect_semantic_statistics = False
-
-                try:
-                    collect_semantic_usage = (site['printouts']['Collect semantic usage'][0] == "t")
-                except:
-                    collect_semantic_usage = False
-
-                try:
-                    collect_statistics_stats = (site['printouts']['Collect statistics stats'][0] == "t")
-                except:
-                    collect_statistics_stats = False
-
-                try:
-                    collect_logs = (site['printouts']['Collect logs'][0] == "t")
-                except:
-                    collect_logs = False
-
-                try:
-                    collect_recent_changes = (site['printouts']['Collect recent changes'][0] == "t")
-                except:
-                    collect_recent_changes = False
-
-                try:
-                    has_statistics_url = site['printouts']['Has statistics URL'][0]
-                except:
-                    has_statistics_url = ''
-
-                try:
-                    has_api_url = site['printouts']['Has API URL'][0]
-                except:
-                    has_api_url = ''
-
                 if has_statistics_url.find('wikkii.com') > 0:
                     # Temporary filter out all Farm:Wikkii sites
                     if self.args.verbose >= 2:
@@ -176,21 +120,20 @@ class BumbleBee(ApiaryBot):
                     my_sites.append({
                         'pagename': pagename,
                         'fullurl': site['fullurl'],
-                        'Has API URL': has_api_url,
-                        'Has statistics URL': has_statistics_url,
+                        'Has API URL': self.getPossibleString(site['printouts'], 'Has API URL'),
+                        'Has statistics URL': self.getPossibleString(site['printouts'], 'Has statistics URL'),
                         'Check every': int(site['printouts']['Check every'][0]),
                         'Creation date': site['printouts']['Creation date'][0],
                         'Has ID': int(site['printouts']['Has ID'][0]),
-                        'In error': (site['printouts']['In error'][0] == "t"),  # Boolean fields we'll convert from the strings we get back to real booleans
-                        'Collect general data': collect_general_data,
-                        'Collect extension data': collect_extension_data,
-                        'Collect skin data': collect_skin_data,
-                        'Collect statistics': collect_statistics,
-                        'Collect semantic statistics': collect_semantic_statistics,
-                        'Collect semantic usage': collect_semantic_usage,
-                        'Collect statistics stats': collect_statistics_stats,
-                        'Collect logs': collect_logs,
-                        'Collect recent changes': collect_recent_changes
+                        'Collect general data': self.getPossibleBoolean(site['printouts'], 'Collect general data'),
+                        'Collect extension data': self.getPossibleBoolean(site['printouts'], 'Collect extension data'),
+                        'Collect skin data': self.getPossibleBoolean(site['printouts'], 'Collect skin data'),
+                        'Collect statistics': self.getPossibleBoolean(site['printouts'], 'Collect statistics'),
+                        'Collect semantic statistics': self.getPossibleBoolean(site['printouts'], 'Collect semantic statistics'),
+                        'Collect semantic usage': self.getPossibleBoolean(site['printouts'], 'Collect semantic usage'),
+                        'Collect statistics stats': self.getPossibleBoolean(site['printouts'], 'Collect statistics stats'),
+                        'Collect logs': self.getPossibleBoolean(site['printouts'], 'Collect logs'),
+                        'Collect recent changes': self.getPossibleBoolean(site['printouts'], 'Collect recent changes')
                     })
 
             return my_sites
@@ -231,7 +174,7 @@ class BumbleBee(ApiaryBot):
                 print "Delta from checks: stats %s general %s" % (stats_delta, general_delta)
 
             (check_stats, check_general) = (False, False)
-            if stats_delta > (site['Check every'] + random.randint(0, 15))  and stats_delta > check_every_limit:    # Add randomness to keep checks spread around
+            if stats_delta > (site['Check every'] + random.randint(0, 15)) and stats_delta > check_every_limit:    # Add randomness to keep checks spread around
                 check_stats = True
             else:
                 if self.args.verbose >= 2:
